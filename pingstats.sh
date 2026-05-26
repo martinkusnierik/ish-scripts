@@ -10,29 +10,27 @@ LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
 finish() {
     echo ""
+    # vypíš štatistiky na obrazovku aj do logu
     stats_print | tee -a "$LOGFILE"
     exit 0
 }
 
 trap finish INT
 
-echo "Timestamped ping to $TARGET"
+echo "Ping to $TARGET"
 echo "Logging to $LOGFILE"
 echo "Press CTRL+C to stop"
 echo ""
 
 while true; do
-    # celý výstup ping-u
     RAW=$(ping -c 1 "$TARGET")
-
-    # zapíš celý ping do logu
-    echo "$(date +"[%Y-%m-%d %H:%M:%S]") $RAW" >> "$LOGFILE"
 
     # extrahuj iba riadok s odpoveďou
     LINE=$(echo "$RAW" | grep "bytes from")
 
     if [ -n "$LINE" ]; then
-        echo "$LINE"   # vypíš na obrazovku
+        # vypíš na obrazovku + zapíš do logu
+        echo "$LINE" | tee -a "$LOGFILE"
 
         # extrahuj čas
         TIME=$(echo "$LINE" | grep -o "time=[0-9.]*" | cut -d= -f2)
@@ -40,6 +38,6 @@ while true; do
 
         [ -n "$TIME_INT" ] && stats_add "$TIME_INT"
     else
-        echo "timeout"
+        echo "timeout" | tee -a "$LOGFILE"
     fi
 done
