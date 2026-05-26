@@ -1,36 +1,23 @@
 #!/bin/sh
 
-# Load config
+. ./shared_stats.sh
+stats_enable_trap
+
 CONFIG_FILE="./ping.conf"
 [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
-
 : "${TARGET:=sme.sk}"
 
 LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
-echo "Starting timestamped ping to $TARGET"
+echo "Timestamped ping to $TARGET"
 echo "Logging to $LOGFILE"
 echo "Press CTRL+C to stop"
 
-ping "$TARGET" | awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush(); }' | tee -a "$LOGFILE"
+ping "$TARGET" | while read -r line; do
+    echo "$(date +"[%Y-%m-%d %H:%M:%S]") $line" | tee -a "$LOGFILE"
 
-echo ""
-echo "Calculating statistics..."
+    TIME=$(echo "$line" | grep -o "time=[0-9.]*" | cut -d= -f2)
+    TIME_INT=${TIME%.*}
 
-SENT=$(grep -c "icmp_seq" "$LOGFILE")
-RECV=$(grep -c "time=" "$LOGFILE")
-LOSS=$((100 - (RECV * 100 / SENT)))
-
-MIN=$(grep "time=" "$LOGFILE" | awk -F'time=' '{print $2}' | awk '{print $1}' | sort -n | head -1)
-MAX=$(grep "time=" "$LOGFILE" | awk -F'time=' '{print $2}' | awk '{print $1}' | sort -n | tail -1)
-AVG=$(grep "time=" "$LOGFILE" | awk -F'time=' '{print $2}' | awk '{sum+=$1; count++} END {if(count>0) print sum/count; else print 0}')
-
-echo "----- Ping Statistics -----"
-echo "Target: $TARGET"
-echo "Packets sent: $SENT"
-echo "Packets received: $RECV"
-echo "Packet loss: $LOSS%"
-echo "Min time: $MIN ms"
-echo "Max time: $MAX ms"
-echo "Avg time: $AVG ms"
-echo "---------------------------"
+    [ -n "$TIME_INT" ] && stats_add "$TIME_INT"
+done
