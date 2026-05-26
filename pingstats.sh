@@ -13,11 +13,12 @@ echo "Timestamped ping to $TARGET"
 echo "Logging to $LOGFILE"
 echo "Press CTRL+C to stop"
 
-ping "$TARGET" | while read -r line; do
+while read -r line; do
     echo "$(date +"[%Y-%m-%d %H:%M:%S]") $line" | tee -a "$LOGFILE"
 
     TIME=$(echo "$line" | grep -o "time=[0-9.]*" | cut -d= -f2)
     TIME_INT=${TIME%.*}
 
     [ -n "$TIME_INT" ] && stats_add "$TIME_INT"
-done
+
+done < <(ping "$TARGET")
