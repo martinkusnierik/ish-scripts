@@ -22,18 +22,24 @@ echo "Press CTRL+C to stop"
 echo ""
 
 while true; do
-    LINE=$(ping -c 1 "$TARGET")
+    # celý výstup ping-u
+    RAW=$(ping -c 1 "$TARGET")
 
-    # vypíš ping na obrazovku
-    echo "$LINE"
+    # zapíš celý ping do logu
+    echo "$(date +"[%Y-%m-%d %H:%M:%S]") $RAW" >> "$LOGFILE"
 
-    # zapíš ping do logu s timestampom
-    echo "$(date +"[%Y-%m-%d %H:%M:%S]") $LINE" >> "$LOGFILE"
+    # extrahuj iba riadok s odpoveďou
+    LINE=$(echo "$RAW" | grep "bytes from")
 
-    # extrahuj čas
-    TIME=$(echo "$LINE" | grep -o "time=[0-9.]*" | cut -d= -f2)
-    TIME_INT=${TIME%.*}
+    if [ -n "$LINE" ]; then
+        echo "$LINE"   # vypíš na obrazovku
 
-    # pridaj do štatistík
-    [ -n "$TIME_INT" ] && stats_add "$TIME_INT"
+        # extrahuj čas
+        TIME=$(echo "$LINE" | grep -o "time=[0-9.]*" | cut -d= -f2)
+        TIME_INT=${TIME%.*}
+
+        [ -n "$TIME_INT" ] && stats_add "$TIME_INT"
+    else
+        echo "timeout"
+    fi
 done
