@@ -1,20 +1,28 @@
 #!/bin/sh
 
-# Shared statistics module with safe histogram
+# Shared statistics module with safe histogram + timeout bucket
 
 STATS_COUNT=0
 STATS_SUM=0
 STATS_MIN=""
 STATS_MAX=""
-STATS_BUCKETS="0 0 0 0 0 0"   # 6 bucketov: 0–19, 20–39, 40–59, 60–79, 80–99, 100+/timeout
+# Buckets:
+# 1: 0-19
+# 2: 20-39
+# 3: 40-59
+# 4: 60-79
+# 5: 80-99
+# 6: 100+
+# 7: timeout / invalid
+STATS_BUCKETS="0 0 0 0 0 0 0"
 
 stats_add() {
     value=$1
 
-    # 1. Urči bucket bezpečne
+    # 1. Determine bucket safely
     case "$value" in
         ''|*[!0-9]*)
-            idx=6 ;;  # timeout / neplatná hodnota
+            idx=7 ;;  # timeout / invalid
         *)
             if   [ "$value" -lt 20 ]; then idx=1
             elif [ "$value" -lt 40 ]; then idx=2
@@ -26,10 +34,10 @@ stats_add() {
             ;;
     esac
 
-    # 2. Aktualizuj štatistiky len ak je to číslo
+    # 2. Update stats only for numeric values
     case "$value" in
         ''|*[!0-9]*)
-            ;; # preskoč
+            ;; # skip
         *)
             STATS_COUNT=$((STATS_COUNT + 1))
             STATS_SUM=$((STATS_SUM + value))
@@ -39,7 +47,7 @@ stats_add() {
             ;;
     esac
 
-    # 3. Bezpečne aktualizuj bucket
+    # 3. Update bucket safely
     old=$(echo "$STATS_BUCKETS" | cut -d' ' -f$idx)
     new=$((old + 1))
 
@@ -56,7 +64,7 @@ stats_print_histogram() {
     echo ""
     echo "Latency histogram (ms)"
 
-    labels="0–19 20–39 40–59 60–79 80–99 100+"
+    labels="0-19 20-39 40-59 60-79 80-99 100+ timeout"
     max_bucket=$(echo "$STATS_BUCKETS" | tr ' ' '\n' | sort -nr | head -1)
 
     i=1
@@ -71,7 +79,7 @@ stats_print_histogram() {
 
         bar=$(printf "%${bar_len}s" | tr ' ' '#')
 
-        printf "%-6s | %s\n" "$label" "$bar"
+        printf "%-7s | %s\n" "$label" "$bar"
 
         i=$((i+1))
     done
