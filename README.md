@@ -1,7 +1,5 @@
 # 🟦 **README.md – iSH Ping Logger & Network Tools**
 
-> Tento text môžeš priamo vložiť do svojho `README.md`.
-
 ---
 
 ## **iSH Ping Logger & Network Diagnostics Tools**
