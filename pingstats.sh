@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. ./shared_stats.sh
+. ./shared_stats.sh   # musí byť prvé!
 
 CONFIG_FILE="./ping.conf"
 [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
@@ -10,7 +10,6 @@ LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
 finish() {
     echo ""
-    # vypíš štatistiky na obrazovku aj do logu
     stats_print | tee -a "$LOGFILE"
     exit 0
 }
@@ -29,15 +28,14 @@ while true; do
     LINE=$(echo "$RAW" | grep "bytes from")
 
     if [ -n "$LINE" ]; then
-        # vypíš na obrazovku + zapíš do logu
         echo "$LINE" | tee -a "$LOGFILE"
 
-        # extrahuj čas
         TIME=$(echo "$LINE" | grep -o "time=[0-9.]*" | cut -d= -f2)
         TIME_INT=${TIME%.*}
 
-        [ -n "$TIME_INT" ] && stats_add "$TIME_INT"
+        stats_add "$TIME_INT"
     else
         echo "timeout" | tee -a "$LOGFILE"
+        stats_add "timeout"
     fi
 done
