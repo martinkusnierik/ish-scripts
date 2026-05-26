@@ -1,9 +1,13 @@
 #!/bin/sh
 
-TARGET="sme.sk"
+CONFIG_FILE="./ping.conf"
+[ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+
+: "${TARGET:=sme.sk}"
+: "${MAX_HEIGHT:=20}"
+: "${SCALE:=1}"
+
 LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
-MAX_HEIGHT=20
-SCALE=1
 
 echo "Starting ping graph to $TARGET"
 echo "Logging to $LOGFILE"
