@@ -41,7 +41,7 @@ apk add git
 Naklonuj repozitár:
 
 ```
-git clone https://github.com/TVOJ_USERNAME/ish-scripts.git
+git clone https://github.com/martinkusnierik/ish-scripts.git
 cd ish-scripts
 ```
 
