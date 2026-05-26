@@ -1,13 +1,17 @@
 #!/bin/sh
 
-TARGET="sme.sk"
+# Load config
+CONFIG_FILE="./ping.conf"
+[ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+
+: "${TARGET:=sme.sk}"
+
 LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
 echo "Starting timestamped ping to $TARGET"
 echo "Logging to $LOGFILE"
 echo "Press CTRL+C to stop"
 
-# Run ping with timestamps and log it
 ping "$TARGET" | awk '{ print strftime("[%Y-%m-%d %H:%M:%S]"), $0; fflush(); }' | tee -a "$LOGFILE"
 
 echo ""
