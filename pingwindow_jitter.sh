@@ -1,12 +1,17 @@
 #!/bin/sh
 
-TARGET="sme.sk"
-WINDOW=50        # počet posledných pingov v grafe
-MAX_HEIGHT=20    # výška grafu
-SCALE=1          # 1 ms = 1 jednotka výšky
+CONFIG_FILE="./ping.conf"
+[ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+
+: "${TARGET:=sme.sk}"
+: "${WINDOW:=50}"
+: "${MAX_HEIGHT:=20}"
+: "${SCALE:=1}"
+: "${GREEN_LIMIT:=40}"
+: "${YELLOW_LIMIT:=80}"
+
 LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
-# ANSI farby
 GREEN="\033[32m"
 YELLOW="\033[33m"
 RED="\033[31m"
@@ -35,11 +40,7 @@ draw_graph() {
         idx=1
         for val in $pings; do
             color=$(echo "$colors" | cut -d' ' -f$idx)
-            if [ "$val" -ge "$row" ]; then
-                line="${line}${color}#${RESET}"
-            else
-                line="${line} "
-            fi
+            [ "$val" -ge "$row" ] && line="${line}${color}#${RESET}" || line="${line} "
             idx=$((idx+1))
         done
         echo "$line"
@@ -60,16 +61,12 @@ while true; do
         TIME_INT=${TIME%.*}
         echo "$(date +"[%Y-%m-%d %H:%M:%S]") $LINE" >> "$LOGFILE"
 
-        if [ "$TIME_INT" -lt 40 ]; then
-            COLOR="$GREEN"
-        elif [ "$TIME_INT" -lt 80 ]; then
-            COLOR="$YELLOW"
-        else
-            COLOR="$RED"
+        if [ "$TIME_INT" -lt "$GREEN_LIMIT" ]; then COLOR="$GREEN"
+        elif [ "$TIME_INT" -lt "$YELLOW_LIMIT" ]; then COLOR="$YELLOW"
+        else COLOR="$RED"
         fi
     fi
 
-    # výpočet jitteru (|current - previous|)
     if [ -n "$last_ping" ]; then
         diff=$(( TIME_INT - last_ping ))
         [ $diff -lt 0 ] && diff=$(( -diff ))
@@ -84,10 +81,10 @@ while true; do
     colors="$colors $COLOR"
 
     COUNT=$(echo "$pings" | wc -w)
-    if [ "$COUNT" -gt "$WINDOW" ]; then
+    [ "$COUNT" -gt "$WINDOW" ] && {
         pings=$(echo "$pings" | cut -d' ' -f2-)
         colors=$(echo "$colors" | cut -d' ' -f2-)
-    fi
+    }
 
     draw_graph
 done
