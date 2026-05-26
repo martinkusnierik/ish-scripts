@@ -1,9 +1,13 @@
 #!/bin/sh
 
-TARGET="sme.sk"
-WINDOW=50
-MAX_HEIGHT=20
-SCALE=1
+CONFIG_FILE="./ping.conf"
+[ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+
+: "${TARGET:=sme.sk}"
+: "${WINDOW:=50}"
+: "${MAX_HEIGHT:=20}"
+: "${SCALE:=1}"
+
 LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
 echo "Sliding window ping graph to $TARGET"
@@ -22,11 +26,7 @@ draw_graph() {
     for row in $(seq $MAX_HEIGHT -1 1); do
         line=""
         for val in $pings; do
-            if [ "$val" -ge "$row" ]; then
-                line="${line}#"
-            else
-                line="${line} "
-            fi
+            [ "$val" -ge "$row" ] && line="${line}#" || line="${line} "
         done
         echo "$line"
     done
@@ -51,7 +51,6 @@ while true; do
 
     pings="$pings $HEIGHT"
     COUNT=$(echo "$pings" | wc -w)
-
     [ "$COUNT" -gt "$WINDOW" ] && pings=$(echo "$pings" | cut -d' ' -f2-)
 
     draw_graph
