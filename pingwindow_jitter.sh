@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TARGET="google.com"
+TARGET="sme.sk"
 WINDOW=50        # počet posledných pingov v grafe
 MAX_HEIGHT=20    # výška grafu
 SCALE=1          # 1 ms = 1 jednotka výšky
