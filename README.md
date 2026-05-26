@@ -1,9 +1,9 @@
-# 🟦 **README.md — iSH Ping Tools (Complete Edition)**
+# 🟦 **README.md — iSH Ping Tools (ish-scripts Edition)**
 
 ## **iSH Ping Tools — Network Diagnostics & ASCII Graphs**
 
-Sada pokročilých nástrojov pre **iSH Shell** na iOS.  
-Obsahuje skripty na timestampované pingovanie, výpočet štatistík, ASCII grafy, sliding‑window vizualizácie, farebné grafy a živý výpočet jitteru.
+Sada pokročilých nástrojov pre **iSH Shell** na iOS**, optimalizovaná pre malé terminály a nízku spotrebu CPU.  
+Obsahuje timestampované pingovanie, ASCII grafy, sliding‑window vizualizácie, farebné grafy, jitter a centrálny konfiguračný súbor.
 
 Všetky skripty sú kompatibilné s Alpine Linux v iSH a nevyžadujú žiadne externé balíky.
 
@@ -17,9 +17,10 @@ Všetky skripty sú kompatibilné s Alpine Linux v iSH a nevyžadujú žiadne ex
 - Sliding‑window graf (posúva sa doprava)  
 - Farebný sliding‑window graf  
 - Sliding‑window graf s jitterom  
-- Logovanie do súborov s dátumom a časom  
+- Centrálna konfigurácia cez `ping.conf`  
+- Automatický update cez `update.sh`  
+- Automatický `chmod +x` po update  
 - Optimalizované pre iSH terminál  
-- Jednoduché spustenie a aktualizácia cez GitHub
 
 ---
 
@@ -28,7 +29,7 @@ Všetky skripty sú kompatibilné s Alpine Linux v iSH a nevyžadujú žiadne ex
 - iSH Shell (iOS)
 - Alpine Linux balíčky:
 
-```sh
+```
 apk update
 apk add git
 ```
@@ -39,15 +40,31 @@ apk add git
 
 Naklonuj repozitár:
 
-```sh
-git clone https://github.com/martinkusnierik/ish-scripts.git
+```
+git clone https://github.com/TVOJ_USERNAME/ish-scripts.git
 cd ish-scripts
 ```
 
 Sprístupni skripty:
 
-```sh
+```
 chmod +x *.sh
+```
+
+---
+
+## 🟦 Konfiguračný súbor: `ping.conf`
+
+Všetky skripty načítavajú tento súbor automaticky.
+
+```
+TARGET="sme.sk"
+WINDOW=50
+MAX_HEIGHT=20
+SCALE=1
+
+GREEN_LIMIT=40
+YELLOW_LIMIT=80
 ```
 
 ---
@@ -55,9 +72,9 @@ chmod +x *.sh
 ## 🟦 Skripty
 
 ### **1. pingstats.sh**  
-Klasický timestampovaný ping s výpočtom štatistík po ukončení.
+Timestampovaný ping + štatistiky po ukončení.
 
-```sh
+```
 ./pingstats.sh
 ```
 
@@ -66,7 +83,7 @@ Klasický timestampovaný ping s výpočtom štatistík po ukončení.
 ### **2. pinggraph.sh**  
 Jednoduchý vertikálny ASCII graf odozvy.
 
-```sh
+```
 ./pinggraph.sh
 ```
 
@@ -75,44 +92,49 @@ Jednoduchý vertikálny ASCII graf odozvy.
 ### **3. pingwindow.sh**  
 Sliding‑window ASCII graf (posúva sa doprava).
 
-```sh
+```
 ./pingwindow.sh
 ```
 
 ---
 
 ### **4. pingwindow_color.sh**  
-Farebný sliding‑window graf s farbami podľa odozvy:
+Farebný sliding‑window graf s farbami podľa odozvy.
 
-- zelená < 40 ms  
-- žltá 40–80 ms  
-- červená > 80 ms  
-- šedá = timeout  
-
-```sh
+```
 ./pingwindow_color.sh
 ```
 
 ---
 
 ### **5. pingwindow_jitter.sh**  
-Sliding‑window graf + živý výpočet jitteru (|current – previous|).
+Sliding‑window graf + živý výpočet jitteru.
 
-```sh
+```
 ./pingwindow_jitter.sh
+```
+
+---
+
+### **6. update.sh**  
+Automatická aktualizácia skriptov + automatický `chmod +x`.
+
+```
+./update.sh
 ```
 
 ---
 
 ## 🟦 Porovnávacia tabuľka skriptov
 
-| Skript | Funkcia | Graf | Farby | Sliding Window | Jitter | Logovanie |
-|-------|---------|-------|--------|----------------|--------|-----------|
-| **pingstats.sh** | Štatistiky po ukončení | ❌ | ❌ | ❌ | ❌ | ✔️ |
-| **pinggraph.sh** | Jednoduchý ASCII graf | ✔️ vertikálny | ❌ | ❌ | ❌ | ✔️ |
-| **pingwindow.sh** | Sliding‑window graf | ✔️ | ❌ | ✔️ | ❌ | ✔️ |
-| **pingwindow_color.sh** | Farebný sliding‑window graf | ✔️ | ✔️ | ✔️ | ❌ | ✔️ |
-| **pingwindow_jitter.sh** | Sliding‑window + jitter | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| Skript | Funkcia | Graf | Farby | Sliding Window | Jitter | Config | Logovanie |
+|-------|---------|-------|--------|----------------|--------|---------|-----------|
+| **pingstats.sh** | Štatistiky po ukončení | ❌ | ❌ | ❌ | ❌ | ✔️ | ✔️ |
+| **pinggraph.sh** | Jednoduchý ASCII graf | ✔️ vertikálny | ❌ | ❌ | ❌ | ✔️ | ✔️ |
+| **pingwindow.sh** | Sliding‑window graf | ✔️ | ❌ | ✔️ | ❌ | ✔️ | ✔️ |
+| **pingwindow_color.sh** | Farebný sliding‑window graf | ✔️ | ✔️ | ✔️ | ❌ | ✔️ | ✔️ |
+| **pingwindow_jitter.sh** | Sliding‑window + jitter | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ | ✔️ |
+| **update.sh** | Auto‑update + chmod | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ |
 
 ---
 
@@ -130,10 +152,17 @@ Logy sú ignorované v `.gitignore`.
 
 ## 🟦 Aktualizácia skriptov
 
-Ak skripty upravíš na GitHube, v iSH ich aktualizuješ:
+Najjednoduchšie:
 
-```sh
+```
+./update.sh
+```
+
+Alebo ručne:
+
+```
 git pull
+chmod +x *.sh
 ```
 
 ---
@@ -142,11 +171,13 @@ git pull
 
 ```
 /ish-scripts
+ ├── ping.conf
  ├── pingstats.sh
  ├── pinggraph.sh
  ├── pingwindow.sh
  ├── pingwindow_color.sh
  ├── pingwindow_jitter.sh
+ ├── update.sh
  ├── README.md
  ├── .gitignore
  └── LICENSE
