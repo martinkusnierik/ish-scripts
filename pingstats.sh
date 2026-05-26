@@ -1,6 +1,6 @@
 #!/bin/sh
 
-TARGET="google.com"
+TARGET="sme.sk"
 LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
 echo "Starting timestamped ping to $TARGET"
