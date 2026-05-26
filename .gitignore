@@ -1,0 +1,19 @@
+# Log files
+*.log
+pinglog_*.txt
+
+# Temporary files
+*.tmp
+*.swp
+*.swo
+
+# iSH iCloud mount
+mnt/icloud/
+
+# Shell history
+.bash_history
+.sh_history
+ash_history
+
+# macOS / iOS metadata
+.DS_Store
