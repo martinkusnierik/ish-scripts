@@ -29,13 +29,12 @@ echo "Press CTRL+C to stop"
 echo ""
 
 # Spustíme ping ako jeden proces
-ping -s "$PAYLOAD" "$TARGET" 2>/dev/null | while read -r LINE; do
+ping -s "$PAYLOAD" "$TARGET" 2>&1 | while read -r LINE; do
     TS=$(date +"[%Y-%m-%d %H:%M:%S]")
 
     case "$LINE" in
-        *"bytes from"*)
+        *"time="*)
             printf "!"
-
             echo "$TS $LINE" >> "$LOGFILE"
 
             TIME=$(echo "$LINE" | grep -o "time=[0-9.]*" | cut -d= -f2)
@@ -44,9 +43,44 @@ ping -s "$PAYLOAD" "$TARGET" 2>/dev/null | while read -r LINE; do
             stats_add "$TIME_INT"
             ;;
 
-        *"timeout"*|*"no answer"*|*"unreachable"*)
-            printf "."
+        *"bad address"*)
+            printf "?"
+            echo "$TS bad_address: $LINE" >> "$LOGFILE"
+            stats_add "timeout"
+            ;;
 
+        *"unknown host"*)
+            printf "?"
+            echo "$TS unknown_host: $LINE" >> "$LOGFILE"
+            stats_add "timeout"
+            ;;
+
+        *"Host is unreachable"*)
+            printf "U"
+            echo "$TS host_unreachable: $LINE" >> "$LOGFILE"
+            stats_add "timeout"
+            ;;
+
+        *"Network is unreachable"*)
+            printf "N"
+            echo "$TS network_unreachable: $LINE" >> "$LOGFILE"
+            stats_add "timeout"
+            ;;
+
+        *"Destination Host Unreachable"*)
+            printf "U"
+            echo "$TS dest_unreachable: $LINE" >> "$LOGFILE"
+            stats_add "timeout"
+            ;;
+
+        *"Operation timed out"*)
+            printf "."
+            echo "$TS timeout" >> "$LOGFILE"
+            stats_add "timeout"
+            ;;
+
+        *"no answer"*)
+            printf "."
             echo "$TS timeout" >> "$LOGFILE"
             stats_add "timeout"
             ;;
