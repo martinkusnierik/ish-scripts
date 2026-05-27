@@ -28,7 +28,7 @@ echo "Logging to $LOGFILE"
 echo "Press CTRL+C to stop"
 echo ""
 
-# Spustíme ping ako jeden proces
+# Spojíme stdout + stderr
 ping -s "$PAYLOAD" "$TARGET" 2>&1 | while read -r LINE; do
     TS=$(date +"[%Y-%m-%d %H:%M:%S]")
 
@@ -37,7 +37,8 @@ ping -s "$PAYLOAD" "$TARGET" 2>&1 | while read -r LINE; do
             printf "!"
             echo "$TS $LINE" >> "$LOGFILE"
 
-            TIME=$(echo "$LINE" | grep -o "time=[0-9.]*" | cut -d= -f2)
+            # extrahuj čas
+            TIME=$(echo "$LINE" | sed -n 's/.*time=\([0-9.]*\).*/\1/p')
             TIME_INT=${TIME%.*}
 
             stats_add "$TIME_INT"
