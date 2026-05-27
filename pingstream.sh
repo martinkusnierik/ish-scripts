@@ -28,8 +28,11 @@ echo "Logging to $LOGFILE"
 echo "Press CTRL+C to stop"
 echo ""
 
-# Spojíme stdout + stderr
-ping -s "$PAYLOAD" "$TARGET" 2>&1 | while read -r LINE; do
+# Spustíme ping na pozadí a čítame jeho výstup bez subshellu
+ping -s "$PAYLOAD" "$TARGET" 2>&1 &
+PINGPID=$!
+
+while read -r LINE; do
     TS=$(date +"[%Y-%m-%d %H:%M:%S]")
 
     case "$LINE" in
@@ -37,7 +40,6 @@ ping -s "$PAYLOAD" "$TARGET" 2>&1 | while read -r LINE; do
             printf "!"
             echo "$TS $LINE" >> "$LOGFILE"
 
-            # extrahuj čas
             TIME=$(echo "$LINE" | sed -n 's/.*time=\([0-9.]*\).*/\1/p')
             TIME_INT=${TIME%.*}
 
@@ -86,7 +88,5 @@ ping -s "$PAYLOAD" "$TARGET" 2>&1 | while read -r LINE; do
             stats_add "timeout"
             ;;
     esac
-done &
 
-PINGPID=$!
-wait $PINGPID
+done < <(tail -f /proc/$PINGPID/fd/1)
