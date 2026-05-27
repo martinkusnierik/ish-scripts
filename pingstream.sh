@@ -13,6 +13,14 @@ PAYLOAD=$((MTU - 28))
 
 LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
+# Farby
+GREEN="\033[32m"
+RED="\033[31m"
+YELLOW="\033[33m"
+BLUE="\033[34m"
+MAGENTA="\033[35m"
+RESET="\033[0m"
+
 finish() {
     echo ""
     stats_print | tee -a "$LOGFILE"
@@ -35,7 +43,7 @@ while true; do
 
     if [ -n "$LINE" ]; then
         # Cisco znak
-        printf "!"
+        printf "${GREEN}!${RESET}"
 
         # log
         echo "$TS $LINE" >> "$LOGFILE"
@@ -50,38 +58,38 @@ while true; do
         # Rozlíšime typ chyby
         case "$RAW" in
             *"bad address"*)
-                printf "?"
+                printf "${MAGENTA}?${RESET}"
                 echo "$TS bad_address: $RAW" >> "$LOGFILE"
                 stats_add "timeout"
                 ;;
 
             *"unknown host"*)
-                printf "?"
+                printf "${MAGENTA}?${RESET}"
                 echo "$TS unknown_host: $RAW" >> "$LOGFILE"
                 stats_add "timeout"
                 ;;
 
             *"Host is unreachable"*)
-                printf "U"
+                printf "${YELLOW}U${RESET}"
                 echo "$TS host_unreachable: $RAW" >> "$LOGFILE"
                 stats_add "timeout"
                 ;;
 
             *"Network is unreachable"*)
-                printf "N"
+                printf "${BLUE}N${RESET}"
                 echo "$TS network_unreachable: $RAW" >> "$LOGFILE"
                 stats_add "timeout"
                 ;;
 
             *"Destination Host Unreachable"*)
-                printf "U"
+                printf "${YELLOW}U${RESET}"
                 echo "$TS dest_unreachable: $RAW" >> "$LOGFILE"
                 stats_add "timeout"
                 ;;
 
             *)
                 # timeout alebo iná chyba
-                printf "."
+                printf "${RED}.${RESET}"
                 echo "$TS timeout: $RAW" >> "$LOGFILE"
                 stats_add "timeout"
                 ;;
