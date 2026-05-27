@@ -21,10 +21,11 @@ BLUE="\033[34m"
 MAGENTA="\033[35m"
 RESET="\033[0m"
 
+SEQ=0
+
 finish() {
     echo ""
     stats_print | tee -a "$LOGFILE"
-    kill $PINGPID 2>/dev/null
     exit 0
 }
 
@@ -35,66 +36,60 @@ echo "Logging to $LOGFILE"
 echo "Press CTRL+C to stop"
 echo ""
 
-# Spustíme ping ako jeden proces (seq sa bude zvyšovať prirodzene)
-ping -s "$PAYLOAD" "$TARGET" 2>&1 &
-PINGPID=$!
-
-# Čítame výstup ping-u v hlavnom procese (bez subshellu)
-while read -r LINE; do
+while true; do
+    RAW=$(ping -c 1 -s "$PAYLOAD" "$TARGET" 2>&1)
     TS=$(date +"[%Y-%m-%d %H:%M:%S]")
 
-    case "$LINE" in
-        *"bytes from"*)
-            printf "${GREEN}!${RESET}"
-            echo "$TS $LINE" >> "$LOGFILE"
+    LINE=$(echo "$RAW" | grep "bytes from")
 
-            TIME=$(echo "$LINE" | sed -n 's/.*time=\([0-9.]*\).*/\1/p')
-            TIME_INT=${TIME%.*}
+    if [ -n "$LINE" ]; then
+        printf "${GREEN}!${RESET}"
+        echo "$TS seq=$SEQ $LINE" >> "$LOGFILE"
 
-            stats_add "$TIME_INT"
-            ;;
+        TIME=$(echo "$LINE" | grep -o "time=[0-9.]*" | cut -d= -f2)
+        TIME_INT=${TIME%.*}
 
-        *"bad address"*)
-            printf "${MAGENTA}?${RESET}"
-            echo "$TS bad_address: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+        stats_add "$TIME_INT"
 
-        *"unknown host"*)
-            printf "${MAGENTA}?${RESET}"
-            echo "$TS unknown_host: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+    else
+        case "$RAW" in
+            *"bad address"*)
+                printf "${MAGENTA}?${RESET}"
+                echo "$TS seq=$SEQ bad_address: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-        *"Host is unreachable"*)
-            printf "${YELLOW}U${RESET}"
-            echo "$TS host_unreachable: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+            *"unknown host"*)
+                printf "${MAGENTA}?${RESET}"
+                echo "$TS seq=$SEQ unknown_host: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-        *"Network is unreachable"*)
-            printf "${BLUE}N${RESET}"
-            echo "$TS network_unreachable: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+            *"Host is unreachable"*)
+                printf "${YELLOW}U${RESET}"
+                echo "$TS seq=$SEQ host_unreachable: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-        *"Destination Host Unreachable"*)
-            printf "${YELLOW}U${RESET}"
-            echo "$TS dest_unreachable: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+            *"Network is unreachable"*)
+                printf "${BLUE}N${RESET}"
+                echo "$TS seq=$SEQ network_unreachable: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-        *"no answer"*)
-            printf "${RED}.${RESET}"
-            echo "$TS timeout: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+            *"Destination Host Unreachable"*)
+                printf "${YELLOW}U${RESET}"
+                echo "$TS seq=$SEQ dest_unreachable: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-        *"timeout"*)
-            printf "${RED}.${RESET}"
-            echo "$TS timeout: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
-    esac
+            *)
+                printf "${RED}.${RESET}"
+                echo "$TS seq=$SEQ timeout: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
+        esac
+    fi
 
-done < /proc/$PINGPID/fd/1
+    SEQ=$((SEQ + 1))
+done
