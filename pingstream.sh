@@ -42,7 +42,7 @@ while true; do
     LINE=$(echo "$RAW" | grep "bytes from")
 
     if [ -n "$LINE" ]; then
-        # Cisco znak
+        # Cisco znak (farebný)
         printf "${GREEN}!${RESET}"
 
         # log
