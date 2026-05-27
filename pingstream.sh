@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. ./shared_stats.sh
+. ./shared_stats.sh   # musí byť prvé!
 
 CONFIG_FILE="./ping.conf"
 [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
@@ -11,82 +11,80 @@ CONFIG_FILE="./ping.conf"
 PAYLOAD=$((MTU - 28))
 [ "$PAYLOAD" -lt 0 ] && PAYLOAD=0
 
-LOGFILE="pingstream_$(date +"%Y-%m-%d_%H-%M-%S").txt"
+LOGFILE="pinglog_$(date +"%Y-%m-%d_%H-%M-%S").txt"
 
 finish() {
     echo ""
-    echo ""
     stats_print | tee -a "$LOGFILE"
-    kill $PINGPID 2>/dev/null
     exit 0
 }
 
 trap finish INT
 
-echo "Streaming ping to $TARGET (MTU=$MTU, payload=$PAYLOAD)"
+echo "Cisco‑style ping to $TARGET (MTU=$MTU, payload=$PAYLOAD)"
 echo "Logging to $LOGFILE"
 echo "Press CTRL+C to stop"
 echo ""
 
-# Spustíme ping na pozadí a čítame jeho výstup bez subshellu
-ping -s "$PAYLOAD" "$TARGET" 2>&1 &
-PINGPID=$!
+while true; do
+    RAW=$(ping -c 1 -s "$PAYLOAD" "$TARGET" 2>&1)
 
-while read -r LINE; do
     TS=$(date +"[%Y-%m-%d %H:%M:%S]")
 
-    case "$LINE" in
-        *"time="*)
-            printf "!"
-            echo "$TS $LINE" >> "$LOGFILE"
+    LINE=$(echo "$RAW" | grep "bytes from")
 
-            TIME=$(echo "$LINE" | sed -n 's/.*time=\([0-9.]*\).*/\1/p')
-            TIME_INT=${TIME%.*}
+    if [ -n "$LINE" ]; then
+        # Cisco znak
+        printf "!"
 
-            stats_add "$TIME_INT"
-            ;;
+        # log
+        echo "$TS $LINE" >> "$LOGFILE"
 
-        *"bad address"*)
-            printf "?"
-            echo "$TS bad_address: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+        # extrahuj čas
+        TIME=$(echo "$LINE" | grep -o "time=[0-9.]*" | cut -d= -f2)
+        TIME_INT=${TIME%.*}
 
-        *"unknown host"*)
-            printf "?"
-            echo "$TS unknown_host: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+        stats_add "$TIME_INT"
 
-        *"Host is unreachable"*)
-            printf "U"
-            echo "$TS host_unreachable: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+    else
+        # Rozlíšime typ chyby
+        case "$RAW" in
+            *"bad address"*)
+                printf "?"
+                echo "$TS bad_address: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-        *"Network is unreachable"*)
-            printf "N"
-            echo "$TS network_unreachable: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+            *"unknown host"*)
+                printf "?"
+                echo "$TS unknown_host: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-        *"Destination Host Unreachable"*)
-            printf "U"
-            echo "$TS dest_unreachable: $LINE" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+            *"Host is unreachable"*)
+                printf "U"
+                echo "$TS host_unreachable: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-        *"Operation timed out"*)
-            printf "."
-            echo "$TS timeout" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
+            *"Network is unreachable"*)
+                printf "N"
+                echo "$TS network_unreachable: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-        *"no answer"*)
-            printf "."
-            echo "$TS timeout" >> "$LOGFILE"
-            stats_add "timeout"
-            ;;
-    esac
+            *"Destination Host Unreachable"*)
+                printf "U"
+                echo "$TS dest_unreachable: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
 
-done < <(tail -f /proc/$PINGPID/fd/1)
+            *)
+                # timeout alebo iná chyba
+                printf "."
+                echo "$TS timeout: $RAW" >> "$LOGFILE"
+                stats_add "timeout"
+                ;;
+        esac
+    fi
+done
