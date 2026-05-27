@@ -1,20 +1,25 @@
 #!/bin/sh
 
-# Shared statistics module with safe histogram + timeout bucket
+# Extended histogram for slow networks (GPRS/EDGE)
 
 STATS_COUNT=0
 STATS_SUM=0
 STATS_MIN=""
 STATS_MAX=""
-# Buckets:
-# 1: 0-19
-# 2: 20-39
-# 3: 40-59
-# 4: 60-79
-# 5: 80-99
-# 6: 100+
-# 7: timeout / invalid
-STATS_BUCKETS="0 0 0 0 0 0 0"
+
+# 11 bucketov:
+# 1: 0–49
+# 2: 50–99
+# 3: 100–199
+# 4: 200–399
+# 5: 400–799
+# 6: 800–1599
+# 7: 1600–3199
+# 8: 3200–6399
+# 9: 6400–12799
+# 10: 12800+
+# 11: timeout
+STATS_BUCKETS="0 0 0 0 0 0 0 0 0 0 0"
 
 stats_add() {
     value=$1
@@ -22,19 +27,23 @@ stats_add() {
     # 1. Determine bucket safely
     case "$value" in
         ''|*[!0-9]*)
-            idx=7 ;;  # timeout / invalid
+            idx=11 ;;  # timeout / invalid
         *)
-            if   [ "$value" -lt 20 ]; then idx=1
-            elif [ "$value" -lt 40 ]; then idx=2
-            elif [ "$value" -lt 60 ]; then idx=3
-            elif [ "$value" -lt 80 ]; then idx=4
-            elif [ "$value" -lt 100 ]; then idx=5
-            else idx=6
+            if   [ "$value" -lt 50 ]; then idx=1
+            elif [ "$value" -lt 100 ]; then idx=2
+            elif [ "$value" -lt 200 ]; then idx=3
+            elif [ "$value" -lt 400 ]; then idx=4
+            elif [ "$value" -lt 800 ]; then idx=5
+            elif [ "$value" -lt 1600 ]; then idx=6
+            elif [ "$value" -lt 3200 ]; then idx=7
+            elif [ "$value" -lt 6400 ]; then idx=8
+            elif [ "$value" -lt 12800 ]; then idx=9
+            else idx=10
             fi
             ;;
     esac
 
-    # 2. Update stats only for numeric values
+    # 2. Update numeric stats
     case "$value" in
         ''|*[!0-9]*)
             ;; # skip
@@ -47,7 +56,7 @@ stats_add() {
             ;;
     esac
 
-    # 3. Update bucket safely
+    # 3. Update bucket
     old=$(echo "$STATS_BUCKETS" | cut -d' ' -f$idx)
     new=$((old + 1))
 
@@ -64,7 +73,7 @@ stats_print_histogram() {
     echo ""
     echo "Latency histogram (ms)"
 
-    labels="0-19 20-39 40-59 60-79 80-99 100+ timeout"
+    labels="0-49 50-99 100-199 200-399 400-799 800-1599 1600-3199 3200-6399 6400-12799 12800+ timeout"
     max_bucket=$(echo "$STATS_BUCKETS" | tr ' ' '\n' | sort -nr | head -1)
 
     i=1
@@ -79,7 +88,7 @@ stats_print_histogram() {
 
         bar=$(printf "%${bar_len}s" | tr ' ' '#')
 
-        printf "%-7s | %s\n" "$label" "$bar"
+        printf "%-12s | %s\n" "$label" "$bar"
 
         i=$((i+1))
     done
